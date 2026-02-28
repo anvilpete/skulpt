@@ -130,6 +130,12 @@ var $builtinmodule = function (name) {
     );
 
 
+    sys.exc_info = new Sk.builtin.func(function () {
+        var e = Sk.__currentException;
+        if (e) { return Sk.builtin.getExcInfo(e); }
+        return new Sk.builtin.tuple([Sk.builtin.none.none$, Sk.builtin.none.none$, Sk.builtin.none.none$]);
+    });
+
     sys.__stdout__ = new Sk.builtin.file(new Sk.builtin.str("/dev/stdout"), new Sk.builtin.str("w"));
     sys.__stdin__ = new Sk.builtin.file(new Sk.builtin.str("/dev/stdin"), new Sk.builtin.str("r"));
     sys.__stderr__ = new Sk.builtin.file(new Sk.builtin.str("/dev/stderr"), new Sk.builtin.str("w"));

@@ -61,8 +61,20 @@ const BaseException = Sk.abstr.buildNativeClass("BaseException", {
             }
         },
         __dict__: Sk.generic.getSetDict,
+        __traceback__: {
+            $get() {
+                if (!this.traceback || this.traceback.length === 0) {
+                    return Sk.builtin.none.none$;
+                }
+                return new Sk.builtin.traceback(this.traceback, this.traceback.length - 1);
+            },
+            $set(v) {
+                if (Sk.builtin.checkNone(v)) {
+                    this.traceback = [];
+                }
+            },
+        },
         /**@todo */
-        // __traceback__: {},
         // __context__: {},
         // __cause__: {}
     },
@@ -402,11 +414,57 @@ Sk.builtin.ExternalError = Sk.abstr.buildNativeClass("ExternalError", {
     base: Exception,
 });
 
-// TODO: Extract into sys.exc_info(). Work out how the heck
-// to find out what exceptions are being processed by parent stack frames...
-Sk.builtin.getExcInfo = function (e) {
-    const v = [e.ob$type || Sk.builtin.none.none$, e, Sk.builtin.none.none$];
-    // TODO create a Traceback object for the third tuple element
+// Traceback object wrapping the exception's .traceback array.
+// The array is ordered [innermost, ..., outermost]. We expose it CPython-style:
+// __traceback__ starts at the outermost frame (index length-1), tb_next decrements
+// toward the innermost (index 0).
+Sk.builtin.traceback = Sk.abstr.buildNativeClass("traceback", {
+    constructor: function traceback(tbArray, index) {
+        this.$tbArray = tbArray;
+        this.$index = index;
+    },
+    slots: {
+        tp$getattr: Sk.generic.getAttr,
+        $r() {
+            return new Sk.builtin.str("<frame, file '" + this.$getFilename() + "', line " + this.$getLineno() + ">");
+        },
+    },
+    getsets: {
+        tb_lineno: {
+            $get() {
+                return new Sk.builtin.int_(this.$tbArray[this.$index].lineno || 0);
+            },
+        },
+        tb_next: {
+            $get() {
+                if (this.$index - 1 >= 0) {
+                    return new Sk.builtin.traceback(this.$tbArray, this.$index - 1);
+                }
+                return Sk.builtin.none.none$;
+            },
+        },
+    },
+    proto: {
+        $getFilename() { return this.$tbArray[this.$index].filename || "<unknown>"; },
+        $getFuncname() { return this.$tbArray[this.$index].funcname || "<module>"; },
+        $getLineno()   { return this.$tbArray[this.$index].lineno || 0; },
+        $getLine()     {
+            const filename = this.$getFilename();
+            const lineno = this.$getLineno();
+            const src = Sk.__sourceCache && Sk.__sourceCache[filename];
+            if (src && lineno > 0 && lineno <= src.length) {
+                return src[lineno - 1].trim();
+            }
+            return null;
+        },
+    },
+});
 
+Sk.builtin.getExcInfo = function (e) {
+    let tb = Sk.builtin.none.none$;
+    if (e.traceback && e.traceback.length > 0) {
+        tb = new Sk.builtin.traceback(e.traceback, e.traceback.length - 1);
+    }
+    const v = [e.ob$type || Sk.builtin.none.none$, e, tb];
     return new Sk.builtin.tuple(v);
 };

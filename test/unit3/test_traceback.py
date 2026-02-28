@@ -428,5 +428,68 @@ class ExceptionContextTest(unittest.TestCase):
             self.assertIsNone(e.__context__)
 
 
+class RaiseFromTest(unittest.TestCase):
+    def test_raise_from_sets_cause_and_suppress_context(self):
+        try:
+            try:
+                raise ValueError("original")
+            except ValueError as orig:
+                raise RuntimeError("chained") from orig
+        except RuntimeError as e:
+            self.assertIsInstance(e.__cause__, ValueError)
+            self.assertTrue(e.__suppress_context__)
+
+    def test_raise_from_none_sets_suppress_context(self):
+        try:
+            try:
+                raise ValueError("original")
+            except ValueError:
+                raise RuntimeError("suppressed") from None
+        except RuntimeError as e:
+            self.assertIsNone(e.__cause__)
+            self.assertTrue(e.__suppress_context__)
+
+    def test_raise_from_prints_direct_cause_message(self):
+        try:
+            try:
+                raise ValueError("original")
+            except ValueError as orig:
+                raise RuntimeError("chained") from orig
+        except RuntimeError as e:
+            f = StringIO()
+            traceback.print_exception(type(e), e, e.__traceback__, file=f)
+
+        lines = f.getvalue().splitlines()
+        self.assertEqual(len(lines), 11)
+        self.assertEqual(lines[0], "Traceback (most recent call last):")
+        self.assertRegex(lines[1], r'  File ".*test_traceback\.py", line \d+, in test_raise_from_prints_direct_cause_message')
+        self.assertEqual(lines[2], '    raise ValueError("original")')
+        self.assertEqual(lines[3], "ValueError: original")
+        self.assertEqual(lines[4], "")
+        self.assertEqual(lines[5], "The above exception was the direct cause of the following exception:")
+        self.assertEqual(lines[6], "")
+        self.assertEqual(lines[7], "Traceback (most recent call last):")
+        self.assertRegex(lines[8], r'  File ".*test_traceback\.py", line \d+, in test_raise_from_prints_direct_cause_message')
+        self.assertEqual(lines[9], '    raise RuntimeError("chained") from orig')
+        self.assertEqual(lines[10], "RuntimeError: chained")
+
+    def test_raise_from_none_suppresses_context_in_output(self):
+        try:
+            try:
+                raise ValueError("original")
+            except ValueError:
+                raise RuntimeError("suppressed") from None
+        except RuntimeError as e:
+            f = StringIO()
+            traceback.print_exception(type(e), e, e.__traceback__, file=f)
+
+        lines = f.getvalue().splitlines()
+        self.assertEqual(len(lines), 4)
+        self.assertEqual(lines[0], "Traceback (most recent call last):")
+        self.assertRegex(lines[1], r'  File ".*test_traceback\.py", line \d+, in test_raise_from_none_suppresses_context_in_output')
+        self.assertEqual(lines[2], '    raise RuntimeError("suppressed") from None')
+        self.assertEqual(lines[3], "RuntimeError: suppressed")
+
+
 if __name__ == "__main__":
     unittest.main()

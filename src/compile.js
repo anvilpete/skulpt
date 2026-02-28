@@ -1529,8 +1529,12 @@ Compiler.prototype.craise = function (s) {
 
         this.setBlock(instantiatedException);
 
-        // TODO TODO TODO set cause appropriately
-        // (and perhaps traceback for py2 if we care before it gets fully deprecated)
+        if (s.cause) {
+            var cause = this._gr("cause", this.vexpr(s.cause));
+            out("if(!Sk.builtin.checkNone(",cause,")&&!(", cause," instanceof Sk.builtin.BaseException)){throw new Sk.builtin.TypeError('exception causes must derive from BaseException');}");
+            out(exc,".$cause=",cause,";");
+            out(exc,".$suppress_context=true;");
+        }
 
         out("if (", exc, " instanceof Sk.builtin.BaseException) {throw ",exc,";} else {throw new Sk.builtin.TypeError('exceptions must derive from BaseException');};");
     } else {

@@ -138,36 +138,39 @@ class PrintTbTest(unittest.TestCase):
         tb = e.__traceback__
         f = StringIO()
         traceback.print_tb(tb, file=f)
+
         lines = f.getvalue().splitlines()
+        self.assertEqual(len(lines), 2)
         self.assertRegex(
-            lines[0], '  File ".*test_traceback.py", line \d+, in catch_error'
+            lines[0], r'  File ".*test_traceback\.py", line \d+, in catch_error'
         )
         self.assertEqual(lines[1], '    raise ValueError("oops")')
-        self.assertEqual(len(lines), 2)
 
     def test_positive_limit(self):
         e = catch_deep_error()
         tb = e.__traceback__
         f = StringIO()
         traceback.print_tb(tb, limit=1, file=f)
+
         lines = f.getvalue().splitlines()
+        self.assertEqual(len(lines), 2)
         self.assertRegex(
-            lines[0], '  File ".*test_traceback.py", line \d+, in catch_deep_error'
+            lines[0], r'  File ".*test_traceback\.py", line \d+, in catch_deep_error'
         )
         self.assertEqual(lines[1], "    call_inner()")
-        self.assertEqual(len(lines), 2)
 
     def test_negative_limit(self):
         e = catch_deep_error()
         tb = e.__traceback__
         f = StringIO()
         traceback.print_tb(tb, limit=-1, file=f)
+
         lines = f.getvalue().splitlines()
+        self.assertEqual(len(lines), 2)
         self.assertRegex(
-            lines[0], '  File ".*test_traceback.py", line \d+, in raise_value_error'
+            lines[0], r'  File ".*test_traceback\.py", line \d+, in raise_value_error'
         )
         self.assertEqual(lines[1], '    raise ValueError("oops")')
-        self.assertEqual(len(lines), 2)
 
 
 class PrintExceptionTest(unittest.TestCase):
@@ -176,20 +179,63 @@ class PrintExceptionTest(unittest.TestCase):
         tb = e.__traceback__
         f = StringIO()
         traceback.print_exception(type(e), e, tb, file=f)
+
         lines = f.getvalue().splitlines()
+        self.assertEqual(len(lines), 4)
         self.assertEqual(lines[0], "Traceback (most recent call last):")
         self.assertRegex(
-            lines[1], '  File ".*test_traceback.py", line \d+, in catch_error'
+            lines[1], r'  File ".*test_traceback\.py", line \d+, in catch_error'
         )
         self.assertEqual(lines[2], '    raise ValueError("oops")')
         self.assertEqual(lines[3], "ValueError: oops")
+
+    def test_print_exception_with_chained_context(self):
+        try:
+            try:
+                raise ValueError("original")
+            except ValueError:
+                raise RuntimeError("chained")
+        except RuntimeError as e:
+            f = StringIO()
+            traceback.print_exception(type(e), e, e.__traceback__, file=f)
+
+        lines = f.getvalue().splitlines()
+        self.assertEqual(len(lines), 11)
+        self.assertEqual(lines[0], "Traceback (most recent call last):")
+        self.assertRegex(lines[1], r'  File ".*test_traceback\.py", line \d+, in test_print_exception_with_chained_context')
+        self.assertEqual(lines[2], '    raise ValueError("original")')
+        self.assertEqual(lines[3], "ValueError: original")
+        self.assertEqual(lines[4], "")
+        self.assertEqual(lines[5], "During handling of the above exception, another exception occurred:")
+        self.assertEqual(lines[6], "")
+        self.assertEqual(lines[7], "Traceback (most recent call last):")
+        self.assertRegex(lines[8], r'  File ".*test_traceback\.py", line \d+, in test_print_exception_with_chained_context')
+        self.assertEqual(lines[9], '    raise RuntimeError("chained")')
+        self.assertEqual(lines[10], "RuntimeError: chained")
+
+    def test_print_exception_chain_false_suppresses_context(self):
+        try:
+            try:
+                raise ValueError("original")
+            except ValueError:
+                raise RuntimeError("chained")
+        except RuntimeError as e:
+            f = StringIO()
+            traceback.print_exception(type(e), e, e.__traceback__, chain=False, file=f)
+
+        lines = f.getvalue().splitlines()
         self.assertEqual(len(lines), 4)
+        self.assertEqual(lines[0], "Traceback (most recent call last):")
+        self.assertRegex(lines[1], r'  File ".*test_traceback\.py", line \d+, in test_print_exception_chain_false_suppresses_context')
+        self.assertEqual(lines[2], '    raise RuntimeError("chained")')
+        self.assertEqual(lines[3], "RuntimeError: chained")
 
     def test_etype_arg_is_ignored(self):
         e = catch_error()
         tb = e.__traceback__
         f = StringIO()
         traceback.print_exception(SyntaxError, e, tb, file=f)
+
         lines = f.getvalue().splitlines()
         self.assertEqual(lines[3], "ValueError: oops")
 
@@ -203,17 +249,18 @@ class PrintExcTest(unittest.TestCase):
             traceback.print_exc(file=f)
 
         lines = f.getvalue().splitlines()
+        self.assertEqual(len(lines), 4)
         self.assertEqual(lines[0], "Traceback (most recent call last):")
         self.assertRegex(
-            lines[1], '  File ".*test_traceback.py", line \d+, in test_print_exc'
+            lines[1], r'  File ".*test_traceback\.py", line \d+, in test_print_exc'
         )
         self.assertEqual(lines[2], '    raise ValueError("oops")')
         self.assertEqual(lines[3], "ValueError: oops")
-        self.assertEqual(len(lines), 4)
 
     def test_with_no_exception(self):
         f = StringIO()
         traceback.print_exc(file=f)
+
         lines = f.getvalue().splitlines()
         self.assertEqual(lines, ["NoneType: None"])
 
@@ -223,6 +270,7 @@ class ExtractTbTest(unittest.TestCase):
         e = catch_deep_error()
         tb = e.__traceback__
         extracted = traceback.extract_tb(tb)
+
         self.assertEqual(len(extracted), 3)
         filename, lineno, name, line = extracted[0]
         self.assertIn("test_traceback.py", filename)
@@ -237,11 +285,12 @@ class FormatListTest(unittest.TestCase):
         tb = e.__traceback__
         extracted = traceback.extract_tb(tb)
         lines = normalise_lines(traceback.format_list(extracted))
+
+        self.assertEqual(len(lines), 2)
         self.assertRegex(
-            lines[0], 'File ".*test_traceback.py", line \d+, in catch_error'
+            lines[0], r'File ".*test_traceback\.py", line \d+, in catch_error'
         )
         self.assertEqual(lines[1], '    raise ValueError("oops")')
-        self.assertEqual(len(lines), 2)
 
 
 class FormatExceptionOnlyTest(unittest.TestCase):
@@ -255,34 +304,36 @@ class FormatExceptionTest(unittest.TestCase):
     def test_format_exception_has_header_and_traceback(self):
         e = catch_deep_error()
         lines = normalise_lines(traceback.format_exception(type(e), e, e.__traceback__))
+
+        self.assertEqual(len(lines), 8)
         self.assertEqual(lines[0], "Traceback (most recent call last):")
         self.assertRegex(
-            lines[1], 'File ".*test_traceback.py", line \d+, in catch_deep_error'
+            lines[1], r'File ".*test_traceback\.py", line \d+, in catch_deep_error'
         )
         self.assertEqual(lines[2], "    call_inner()")
         self.assertRegex(
-            lines[3], 'File ".*test_traceback.py", line \d+, in call_inner'
+            lines[3], r'File ".*test_traceback\.py", line \d+, in call_inner'
         )
         self.assertEqual(lines[4], "    raise_value_error()")
         self.assertRegex(
-            lines[5], 'File ".*test_traceback.py", line \d+, in raise_value_error'
+            lines[5], r'File ".*test_traceback\.py", line \d+, in raise_value_error'
         )
         self.assertEqual(lines[6], '    raise ValueError("oops")')
         self.assertEqual(lines[7], "ValueError: oops")
-        self.assertEqual(len(lines), 8)
 
     def test_format_exception_limit(self):
         e = catch_deep_error()
         lines = normalise_lines(
             traceback.format_exception(type(e), e, e.__traceback__, limit=1)
         )
+
+        self.assertEqual(len(lines), 4)
         self.assertEqual(lines[0], "Traceback (most recent call last):")
         self.assertRegex(
-            lines[1], 'File ".*test_traceback.py", line \d+, in catch_deep_error'
+            lines[1], r'File ".*test_traceback\.py", line \d+, in catch_deep_error'
         )
         self.assertEqual(lines[2], "    call_inner()")
         self.assertEqual(lines[3], "ValueError: oops")
-        self.assertEqual(len(lines), 4)
 
     def test_format_exception_none_tb_omits_header_and_traceback(self):
         e = catch_error()
@@ -298,13 +349,13 @@ class FormatExcTest(unittest.TestCase):
             text = traceback.format_exc()
 
         lines = text.splitlines()
+        self.assertEqual(len(lines), 4)
         self.assertEqual(lines[0], "Traceback (most recent call last):")
         self.assertRegex(
-            lines[1], 'File ".*test_traceback.py", line \d+, in test_format_exc'
+            lines[1], r'File ".*test_traceback\.py", line \d+, in test_format_exc'
         )
         self.assertEqual(lines[2], '    raise ValueError("oops")')
         self.assertEqual(lines[3], "ValueError: oops")
-        self.assertEqual(len(lines), 4)
 
 
 class FormatTbTest(unittest.TestCase):
@@ -312,15 +363,16 @@ class FormatTbTest(unittest.TestCase):
         e = catch_error()
         tb = e.__traceback__
         lines = normalise_lines(traceback.format_tb(tb))
+
+        self.assertEqual(len(lines), 2)
         self.assertRegex(
-            lines[0], '  File ".*test_traceback.py", line \d+, in catch_error'
+            lines[0], r'  File ".*test_traceback\.py", line \d+, in catch_error'
         )
         self.assertEqual(lines[1], '    raise ValueError("oops")')
-        self.assertEqual(len(lines), 2)
 
 
 class WalkTbTest(unittest.TestCase):
-    def test_walk_stack(self):
+    def test_walk_tb(self):
         e = catch_deep_error()
         tb = e.__traceback__
         gen = traceback.walk_tb(tb)
@@ -331,8 +383,49 @@ class WalkTbTest(unittest.TestCase):
                 count += 1
         except StopIteration:
             pass
+
         # Expect 3 frames: catch_value_error, call_inner, raise_value_error
         self.assertEqual(count, 3)
+
+
+class ExceptionContextTest(unittest.TestCase):
+    def test_context_set_when_raised_inside_except(self):
+        try:
+            try:
+                raise ValueError("original")
+            except ValueError:
+                raise RuntimeError("new")
+        except RuntimeError as e:
+            self.assertIsInstance(e.__context__, ValueError)
+            self.assertEqual(str(e.__context__), "original")
+
+    def test_context_is_none_when_not_in_handler(self):
+        try:
+            raise ValueError("standalone")
+        except ValueError as e:
+            self.assertIsNone(e.__context__)
+
+    def test_context_chained_three_levels(self):
+        try:
+            try:
+                try:
+                    raise ValueError("first")
+                except ValueError:
+                    raise TypeError("second")
+            except TypeError:
+                raise RuntimeError("third")
+        except RuntimeError as e:
+            self.assertIsInstance(e.__context__, TypeError)
+            self.assertIsInstance(e.__context__.__context__, ValueError)
+
+    def test_bare_reraise_does_not_set_context(self):
+        try:
+            try:
+                raise ValueError("original")
+            except ValueError:
+                raise  # bare re-raise
+        except ValueError as e:
+            self.assertIsNone(e.__context__)
 
 
 if __name__ == "__main__":

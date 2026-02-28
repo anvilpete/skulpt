@@ -74,8 +74,26 @@ const BaseException = Sk.abstr.buildNativeClass("BaseException", {
                 }
             },
         },
+        __context__: {
+            $get() {
+                return this.$context || Sk.builtin.none.none$;
+            },
+            $set(v) {
+                if (!Sk.builtin.checkNone(v) && !(v instanceof Sk.builtin.BaseException)) {
+                    throw new TypeError("exception context must be None or derive from BaseException");
+                }
+                this.$context = v;
+            }
+        },
+        __suppress_context__: {
+            $get() {
+                return this.$suppress_context ? Sk.builtin.bool.true$ : Sk.builtin.bool.false$;
+            },
+            $set(v) {
+                this.$suppress_context = Sk.builtin.isTrue(v);
+            }
+        },
         /**@todo */
-        // __context__: {},
         // __cause__: {}
     },
     proto: /**@lends {BaseException}*/ {

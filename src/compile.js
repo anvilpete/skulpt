@@ -1265,7 +1265,7 @@ Compiler.prototype.outputSuspensionHelpers = function (unit) {
         }
     }
 
-    output +=  "try { $ret=susp.child.resume(); } catch(err) { if (!(err instanceof Sk.builtin.BaseException)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: $currLineNo, colno: $currColNo, filename: '"+this.filename+"', funcname: '"+unit.name.v+"'}); if($exc.length>0) { $err=err; $blk=$exc.pop(); } else { throw err; } }" +
+    output +=  "try { $ret=susp.child.resume(); } catch(err) { if (!(err instanceof Sk.builtin.BaseException)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: $currLineNo, colno: $currColNo, filename: '"+this.filename+"', funcname: '"+unit.name.v+"', firstlineno: "+unit.firstlineno+"}); if($exc.length>0) { $err=err; $blk=$exc.pop(); } else { throw err; } }" +
                 "};";
     output += "var $self = this;";
     output += unit.ste.generator?"var $gen = $self;":"";
@@ -2107,7 +2107,7 @@ Compiler.prototype.buildcodeobj = function (n, coname, decorator_list, args, cal
     this.u.switchCode = "while(true){try{";
     this.u.switchCode += this.outputInterruptTest();
     this.u.switchCode += "switch($blk){";
-    this.u.suffixCode = "} }catch(err){ if (!(err instanceof Sk.builtin.BaseException)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: $currLineNo, colno: $currColNo, filename: '"+this.filename+"', funcname: '"+this.u.name.v+"'}); if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }} }});";
+    this.u.suffixCode = "} }catch(err){ if (!(err instanceof Sk.builtin.BaseException)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: $currLineNo, colno: $currColNo, filename: '"+this.filename+"', funcname: '"+this.u.name.v+"', firstlineno: "+this.u.firstlineno+"}); if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }} }});";
 
     //
     // jump back to the handler so it can do the main actual work of the
@@ -2469,7 +2469,7 @@ Compiler.prototype.cclass = function (s) {
     this.u.switchCode += "while(true){try{";
     this.u.switchCode += this.outputInterruptTest();
     this.u.switchCode += "switch($blk){";
-    this.u.suffixCode = "}}catch(err){ if (!(err instanceof Sk.builtin.BaseException)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: $currLineNo, colno: $currColNo, filename: '"+this.filename+"', funcname: '"+this.u.name.v+"'}); if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }}}";
+    this.u.suffixCode = "}}catch(err){ if (!(err instanceof Sk.builtin.BaseException)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: $currLineNo, colno: $currColNo, filename: '"+this.filename+"', funcname: '"+this.u.name.v+"', firstlineno: "+this.u.firstlineno+"}); if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }}}";
     this.u.suffixCode += "}).call(null, $cell);});";
 
     this.u.private_ = s.name;
@@ -2937,7 +2937,7 @@ Compiler.prototype.cmod = function (mod) {
     this.u.switchCode += this.outputInterruptTest();
     this.u.switchCode += "switch($blk){";
     this.u.suffixCode = "}";
-    this.u.suffixCode += "}catch(err){ if (!(err instanceof Sk.builtin.BaseException)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: $currLineNo, colno: $currColNo, filename: '"+this.filename+"', funcname: '<module>'}); if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }} } });";
+    this.u.suffixCode += "}catch(err){ if (!(err instanceof Sk.builtin.BaseException)) { err = new Sk.builtin.ExternalError(err); } err.traceback.push({lineno: $currLineNo, colno: $currColNo, filename: '"+this.filename+"', funcname: '<module>', firstlineno: "+this.u.firstlineno+"}); if ($exc.length>0) { $err = err; $blk=$exc.pop(); continue; } else { throw err; }} } });";
 
     // Note - this change may need to be adjusted for all the other instances of
     // switchCode and suffixCode in this file.  Not knowing how to test those

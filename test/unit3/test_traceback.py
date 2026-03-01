@@ -60,16 +60,46 @@ class TracebackTest(unittest.TestCase):
         tb = e.__traceback__
         self.assertGreater(tb.tb_lineno, 0)
 
-    def test_traceback_length(self):
+    def test_co_filename(self):
+        e = catch_error()
+        tb = e.__traceback__
+        self.assertIn("test_traceback.py", tb.tb_frame.f_code.co_filename)
+
+    def test_co_name(self):
+        e = catch_error()
+        tb = e.__traceback__
+        self.assertEqual(tb.tb_frame.f_code.co_name, "catch_error")
+
+    def test_co_firstlineno_is_def_line_not_raise_line(self):
+        # co_firstlineno should be the 'def' line, which is less than
+        # tb_lineno (the line where the exception was raised)
+        e = catch_error()
+        tb = e.__traceback__
+        self.assertLess(tb.tb_frame.f_code.co_firstlineno, tb.tb_lineno)
+
+    def test_f_lineno_is_at_least_tb_lineno(self):
+        # If Skulpt had a live frame object, we would use it for f_lineno.
+        # Since it doesn't, we set f_lineno to the line number of the traceback frame.
+        e = catch_error()
+        tb = e.__traceback__
+        self.assertGreaterEqual(tb.tb_frame.f_lineno, tb.tb_lineno)
+
+    def test_f_back_links_to_outer_frame(self):
         e = catch_deep_error()
         tb = e.__traceback__
-        count = 0
-        cur = tb
-        while cur is not None:
-            count += 1
-            cur = cur.tb_next
-        # Expect 3 frames: catch_value_error, call_inner, raise_value_error
-        self.assertEqual(count, 3)
+        # inner frame's f_back points to the outer (calling) frame
+        inner = tb.tb_next
+        self.assertIsNotNone(inner.tb_frame.f_back)
+        self.assertEqual(inner.tb_frame.f_back.f_code.co_name, tb.tb_frame.f_code.co_name)
+
+    def test_nested_frames_have_correct_names(self):
+        e = catch_deep_error()
+        tb = e.__traceback__
+        names = []
+        while tb is not None:
+            names.append(tb.tb_frame.f_code.co_name)
+            tb = tb.tb_next
+        self.assertEqual(names, ["catch_deep_error", "call_inner", "raise_value_error"])
 
 
 class SysExcInfoTest(unittest.TestCase):

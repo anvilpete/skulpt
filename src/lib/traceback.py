@@ -1,20 +1,19 @@
+import linecache
 import sys
 
 import _sk_fail
-import _traceback
 
 
 def extract_tb(tb, limit=None):
     result = []
     while tb is not None:
-        result.append(
-            (
-                _traceback.get_filename(tb),
-                tb.tb_lineno,
-                _traceback.get_name(tb),
-                _traceback.get_line(tb),
-            )
+        item = (
+            tb.tb_frame.f_code.co_filename,
+            tb.tb_lineno,
+            tb.tb_frame.f_code.co_name,
+            linecache.getline(tb.tb_frame.f_code.co_filename, tb.tb_lineno).strip() or None,
         )
+        result.append(item)
         tb = tb.tb_next
 
     if limit is None:

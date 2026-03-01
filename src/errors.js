@@ -414,6 +414,49 @@ Sk.builtin.ExternalError = Sk.abstr.buildNativeClass("ExternalError", {
     base: Exception,
 });
 
+Sk.builtin.code = Sk.abstr.buildNativeClass("code", {
+    constructor: function code(filename, name, firstlineno) {
+        this.$filename = filename;
+        this.$name = name;
+        this.$firstlineno = firstlineno;
+    },
+    slots: { tp$getattr: Sk.generic.getAttr },
+    getsets: {
+        co_filename:    { $get() { return new Sk.builtin.str(this.$filename); } },
+        co_name:        { $get() { return new Sk.builtin.str(this.$name); } },
+        co_firstlineno: { $get() { return new Sk.builtin.int_(this.$firstlineno); } },
+    },
+});
+
+Sk.builtin.frame = Sk.abstr.buildNativeClass("frame", {
+    constructor: function frame(tbArray, index) {
+        this.$tbArray = tbArray;
+        this.$index = index;
+    },
+    slots: { tp$getattr: Sk.generic.getAttr },
+    getsets: {
+        f_code: {
+            $get() {
+                const e = this.$tbArray[this.$index];
+                return new Sk.builtin.code(e.filename || "<unknown>", e.funcname || "<module>", e.firstlineno || 0);
+            },
+        },
+        // We don't have a live frame object, so instead we set f_lineno to the line number of the traceback frame.
+        f_lineno:  { $get() { return new Sk.builtin.int_(this.$tbArray[this.$index].lineno || 0); } },
+        f_back: {
+            $get() {
+                if (this.$index + 1 < this.$tbArray.length) {
+                    return new Sk.builtin.frame(this.$tbArray, this.$index + 1);
+                }
+                return Sk.builtin.none.none$;
+            },
+        },
+        // TODO: implement f_locals and f_globals
+        f_locals:  { $get() { return new Sk.builtin.dict([]); } },
+        f_globals: { $get() { return new Sk.builtin.dict([]); } },
+    },
+});
+
 // Traceback object wrapping the exception's .traceback array.
 // The array is ordered [innermost, ..., outermost]. We expose it CPython-style:
 // __traceback__ starts at the outermost frame (index length-1), tb_next decrements
@@ -443,20 +486,14 @@ Sk.builtin.traceback = Sk.abstr.buildNativeClass("traceback", {
                 return Sk.builtin.none.none$;
             },
         },
+        tb_frame: {
+            $get() { return new Sk.builtin.frame(this.$tbArray, this.$index); },
+        },
     },
     proto: {
         $getFilename() { return this.$tbArray[this.$index].filename || "<unknown>"; },
         $getFuncname() { return this.$tbArray[this.$index].funcname || "<module>"; },
         $getLineno()   { return this.$tbArray[this.$index].lineno || 0; },
-        $getLine()     {
-            const filename = this.$getFilename();
-            const lineno = this.$getLineno();
-            const src = Sk.__sourceCache && Sk.__sourceCache[filename];
-            if (src && lineno > 0 && lineno <= src.length) {
-                return src[lineno - 1].trim();
-            }
-            return null;
-        },
     },
 });
 

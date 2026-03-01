@@ -1781,12 +1781,52 @@ Compiler.prototype.cassert = function (s) {
      Sk.warn("assertion is always true, perhaps remove parentheses?");
      */
 
+    // Enhanced path: call __assertHook with additional assertion detail for simple binary comparisons (e.g. `assert a == b` or `assert a == b, "msg"`)
+    if (s.test instanceof Sk.astnodes.Compare && s.test.ops.length === 1) {
+        const left = this.vexpr(s.test.left);
+        const right = this.vexpr(s.test.comparators[0]);
+        const op = s.test.ops[0];
+        const end = this.newBlock("end");
+
+        const opMap = {
+            "Eq": "==", "NotEq": "!=", "Lt": "<", "LtE": "<=",
+            "Gt": ">", "GtE": ">=", "Is": "is", "IsNot": "is not",
+            "In": "in", "NotIn": "not in"
+        };
+        const opStr = opMap[op.prototype._astname] || op.prototype._astname;
+
+        if (op === Sk.astnodes.Is) {
+            out("$ret = ", left, "===", right, ";");
+        } else if (op === Sk.astnodes.IsNot) {
+            out("$ret = ", left, "!==", right, ";");
+        } else {
+            out("$ret = Sk.misceval.richCompareBool(", left, ",", right, ",'", op.prototype._astname, "', true);");
+            this._checkSuspension(s.test);
+        }
+        this._jumptrue("$ret", end);
+        var detail = this._gr("assertdetail", "'assert '+Sk.builtin.repr(", left, ").v+' ", opStr, " '+Sk.builtin.repr(", right, ").v");
+        if (s.msg != null) {
+            var msg = this.vexpr(s.msg);
+            out("if(Sk.__assertHook){throw Sk.__assertHook(", msg, ",", detail, ");}else{throw new Sk.builtin.AssertionError(", msg, ");}");
+        } else {
+            out("if(Sk.__assertHook){throw Sk.__assertHook(null,", detail, ");}else{throw new Sk.builtin.AssertionError();}");
+        }
+        this.setBlock(end);
+        return;
+    }
+
+    // Default path for all other assertion types
     var test = this.vexpr(s.test);
     var end = this.newBlock("end");
     this._jumptrue(test, end);
     // todo; exception handling
     // maybe replace with Sk.asserts.fail?? or just an alert?
-    out("throw new Sk.builtin.AssertionError(", s.msg ? this.vexpr(s.msg) : "", ");");
+    if (s.msg != null) {
+        var msg = this.vexpr(s.msg);
+        out("if(Sk.__assertHook){throw Sk.__assertHook(", msg, ",null);}else{throw new Sk.builtin.AssertionError(", msg, ");}");
+    } else {
+        out("if(Sk.__assertHook){throw Sk.__assertHook(null,null);}else{throw new Sk.builtin.AssertionError();}");
+    }
     this.setBlock(end);
 };
 

@@ -73,6 +73,8 @@ Sk.python3 = {
     silent_octal_literal: false,
 };
 
+Sk.__assertHook = null;
+
 Sk.configure = function (options) {
     "use strict";
     Sk.output = options["output"] || Sk.output;
@@ -204,6 +206,8 @@ Sk.configure = function (options) {
         Sk.realsyspath = undefined;
         Sk.sysmodules = new Sk.builtin.dict([]);
     }
+
+    Sk.__assertHook = options["__assertHook"] || null;
 
     Sk.misceval.softspace_ = false;
 

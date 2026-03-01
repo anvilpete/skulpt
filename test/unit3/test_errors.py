@@ -113,6 +113,77 @@ class TryExceptFinallyTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             raise 1
 
+
+class AssertTests(unittest.TestCase):
+    def test_assert_simple_pass(self):
+        assert True
+        assert 1 == 1
+        assert 1 != 2
+        assert 1 < 2
+        assert 2 > 1
+        assert 1 <= 1
+        assert 1 >= 1
+
+    def test_assert_simple_fail(self):
+        with self.assertRaises(AssertionError):
+            assert False
+
+    def test_assert_comparison_fail(self):
+        with self.assertRaises(AssertionError):
+            assert 1 == 2
+        with self.assertRaises(AssertionError):
+            assert 1 > 2
+        with self.assertRaises(AssertionError):
+            assert 2 < 1
+        with self.assertRaises(AssertionError):
+            assert 1 != 1
+        with self.assertRaises(AssertionError):
+            assert 2 <= 1
+        with self.assertRaises(AssertionError):
+            assert 1 >= 2
+
+    def test_assert_identity_fail(self):
+        a = [1]
+        b = [1]
+        with self.assertRaises(AssertionError):
+            assert a is b
+        a = object()
+        with self.assertRaises(AssertionError):
+            assert a is not a
+
+    def test_assert_with_message(self):
+        with self.assertRaises(AssertionError) as ctx:
+            assert 1 == 2, "custom message"
+        self.assertIn("custom message", str(ctx.exception))
+
+    def test_assert_with_message_pass(self):
+        assert 1 == 1, "should not appear"
+        assert True, "should not appear"
+
+    def test_assert_chained_comparison(self):
+        assert 1 < 2 < 3
+        with self.assertRaises(AssertionError):
+            assert 1 < 2 < 1
+
+    def test_assert_non_compare(self):
+        assert [1, 2, 3]
+        assert "non-empty"
+        assert 42
+        with self.assertRaises(AssertionError):
+            assert []
+        with self.assertRaises(AssertionError):
+            assert ""
+        with self.assertRaises(AssertionError):
+            assert 0
+
+    def test_assert_with_expressions(self):
+        def add(a, b):
+            return a + b
+        assert add(1, 2) == 3
+        with self.assertRaises(AssertionError):
+            assert add(1, 2) == 4
+
+
 if __name__ == '__main__':
     unittest.main()
             

@@ -146,7 +146,17 @@ Sk.builtin.func = Sk.abstr.buildNativeClass("function", {
             $set(v) {
                 this.$module = v || Sk.builtin.none.none$;
             }
-        }
+        },
+        __code__: {
+            $get() {
+                const name = this.$name instanceof Sk.builtin.str ? this.$name.v : (this.$name || "<unknown>");
+                const filename = this.func_code.co_filename || "<unknown>";
+                const firstlineno = this.func_code.co_firstlineno || 0;
+                const varnames = this.co_varnames;
+                const argcount = this.co_argcount;
+                return new Sk.builtin.code(filename, name, firstlineno, varnames, argcount);
+            },
+        },
     },
     proto: {
         $memoiseFlags() {

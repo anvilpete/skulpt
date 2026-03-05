@@ -394,5 +394,59 @@ class StaticMethodAttrsTest(unittest.TestCase):
 #         self.assertEqual({'foo': 'bar'}.pop.__qualname__, 'dict.pop')
 
 
+class CodeObjectTest(unittest.TestCase):
+    def test_co_varnames_simple(self):
+        def f(a, b, c):
+            pass
+        self.assertEqual(f.__code__.co_varnames, ('a', 'b', 'c'))
+
+    def test_co_argcount_simple(self):
+        def f(a, b, c):
+            pass
+        self.assertEqual(f.__code__.co_argcount, 3)
+
+    def test_co_varnames_no_args(self):
+        def f():
+            pass
+        self.assertEqual(f.__code__.co_varnames, ())
+
+    def test_co_argcount_no_args(self):
+        def f():
+            pass
+        self.assertEqual(f.__code__.co_argcount, 0)
+
+    def test_co_argcount_with_defaults(self):
+        def f(a, b=1, c=2):
+            pass
+        self.assertEqual(f.__code__.co_argcount, 3)
+        self.assertEqual(f.__code__.co_varnames, ('a', 'b', 'c'))
+
+    def test_co_argcount_kwonly(self):
+        def f(a, b, *, c=3):
+            pass
+        # co_argcount excludes keyword-only args
+        self.assertEqual(f.__code__.co_argcount, 2)
+
+    def test_co_name(self):
+        def f(x):
+            pass
+        def my_func(x, y):
+            pass
+        self.assertEqual(f.__code__.co_name, 'f')
+        self.assertEqual(my_func.__code__.co_name, 'my_func')
+
+    def test_co_filename(self):
+        def f():
+            pass
+        self.assertIsInstance(f.__code__.co_filename, str)
+        self.assertIn('test_funcattrs', f.__code__.co_filename)
+
+    def test_co_firstlineno(self):
+        def f():
+            pass
+        self.assertIsInstance(f.__code__.co_firstlineno, int)
+        self.assertGreater(f.__code__.co_firstlineno, 0)
+
+
 if __name__ == "__main__":
     unittest.main()

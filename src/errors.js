@@ -433,16 +433,20 @@ Sk.builtin.ExternalError = Sk.abstr.buildNativeClass("ExternalError", {
 });
 
 Sk.builtin.code = Sk.abstr.buildNativeClass("code", {
-    constructor: function code(filename, name, firstlineno) {
+    constructor: function code(filename, name, firstlineno, varnames, argcount) {
         this.$filename = filename;
         this.$name = name;
         this.$firstlineno = firstlineno;
+        this.$varnames = varnames || [];  // JS array of JS strings
+        this.$argcount = argcount != null ? argcount : this.$varnames.length;
     },
     slots: { tp$getattr: Sk.generic.getAttr },
     getsets: {
         co_filename:    { $get() { return new Sk.builtin.str(this.$filename); } },
         co_name:        { $get() { return new Sk.builtin.str(this.$name); } },
         co_firstlineno: { $get() { return new Sk.builtin.int_(this.$firstlineno); } },
+        co_varnames:    { $get() { return new Sk.builtin.tuple(this.$varnames.map(v => new Sk.builtin.str(v))); } },
+        co_argcount:    { $get() { return new Sk.builtin.int_(this.$argcount); } },
     },
 });
 

@@ -2879,6 +2879,8 @@ Compiler.prototype.exitScope = function () {
         mangled = prev.name["$r"]().v;
         mangled = mangled.substring(1, mangled.length - 1);
         out(prev.scopename, ".co_name=new Sk.builtins['str']('", mangled, "');");
+        out(prev.scopename, ".co_filename='", this.filename, "';");
+        out(prev.scopename, ".co_firstlineno=", prev.firstlineno, ";");
         if (this.stack.length && this.u.ste.blockType == "class") {
             const classname = this.u.name.v;
             out(prev.scopename, ".co_qualname=new Sk.builtins['str']('"+classname+ "." + mangled + "');");
